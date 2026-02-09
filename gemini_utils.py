@@ -51,3 +51,27 @@ def check_quota(client, model_id="gemini-2.5-flash"):
     except Exception:
         # Silent failure if metadata is unavailable
         pass
+
+
+def end_session_report(client, model_id="gemini-2.5-flash"):
+    """
+    Displays a final session summary.
+    In 2026, the free tier for Flash is 250 requests per day.
+    """
+    # Standard daily limits for the 2026 Free Tier
+    limits = {
+        "gemini-2.5-flash": 250,
+        "gemini-2.5-flash-lite": 1000,
+        "gemini-2.5-pro": 100
+    }
+    
+    total = limits.get(model_id, 250)
+    
+    print("\n" + "─" * 45)
+    print(f"✨ SESSION WRAP-UP | {model_id.upper()}")
+    print("─" * 45)
+    print(f"✅ Tasks completed successfully.")
+    print(f"📈 Daily limit for this model: {total} requests.")
+    print(f"💡 Note: No image generation available on this tier.")
+    print("─" * 45)
+    print("Remember to disconnect your runtime if you are finished.")

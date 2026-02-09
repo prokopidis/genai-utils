@@ -52,26 +52,28 @@ def check_quota(client, model_id="gemini-2.5-flash"):
         # Silent failure if metadata is unavailable
         pass
 
-
 def end_session_report(client, model_id="gemini-2.5-flash"):
     """
     Displays a final session summary.
-    In 2026, the free tier for Flash is 250 requests per day.
+    Updated for 2026: Provides tier-based quota information.
     """
-    # Standard daily limits for the 2026 Free Tier
+    # Latest 2026 Free Tier Limits
     limits = {
-        "gemini-2.5-flash": 250,
-        "gemini-2.5-flash-lite": 1000,
-        "gemini-2.5-pro": 100
+        "gemini-2.5-flash": {"RPD": 250, "RPM": 15},
+        "gemini-2.5-flash-lite": {"RPD": 1000, "RPM": 15},
+        "gemini-2.5-pro": {"RPD": 100, "RPM": 5}
     }
     
-    total = limits.get(model_id, 250)
+    info = limits.get(model_id, {"RPD": "Unknown", "RPM": "Unknown"})
     
     print("\n" + "─" * 45)
     print(f"✨ SESSION WRAP-UP | {model_id.upper()}")
     print("─" * 45)
     print(f"✅ Tasks completed successfully.")
-    print(f"📈 Daily limit for this model: {total} requests.")
-    print(f"💡 Note: No image generation available on this tier.")
+    print(f"📈 Daily Limit (RPD): {info['RPD']} requests")
+    print(f"⏱️ Minute Limit (RPM): {info['RPM']} requests")
+    print(f"🔗 Check usage: https://aistudio.google.com/app/billing")
     print("─" * 45)
-    print("Remember to disconnect your runtime if you are finished.")
+    print("💡 Limits reset at midnight Pacific Time.")
+    print("─" * 45)
+    

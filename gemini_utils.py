@@ -54,10 +54,9 @@ def check_quota(client, model_id="gemini-2.5-flash"):
 
 def end_session_report(client, model_id="gemini-2.5-flash"):
     """
-    Displays a final session summary.
-    Updated for 2026: Provides tier-based quota information.
+    Displays a final session summary with official dashboard links.
     """
-    # Latest 2026 Free Tier Limits
+    # 2026 Free Tier Daily Limits (RPD) and Minute Limits (RPM)
     limits = {
         "gemini-2.5-flash": {"RPD": 250, "RPM": 15},
         "gemini-2.5-flash-lite": {"RPD": 1000, "RPM": 15},
@@ -69,11 +68,11 @@ def end_session_report(client, model_id="gemini-2.5-flash"):
     print("\n" + "─" * 45)
     print(f"✨ SESSION WRAP-UP | {model_id.upper()}")
     print("─" * 45)
-    print(f"✅ Tasks completed successfully.")
-    print(f"📈 Daily Limit (RPD): {info['RPD']} requests")
-    print(f"⏱️ Minute Limit (RPM): {info['RPM']} requests")
-    print(f"🔗 Check usage: https://aistudio.google.com/app/billing")
+    print(f"✅ Code execution: Successful")
+    print(f"📈 Estimated Daily Limit: {info['RPD']} requests")
+    print(f"⏱️ Estimated Minute Limit: {info['RPM']} requests")
     print("─" * 45)
-    print("💡 Limits reset at midnight Pacific Time.")
+    # The only place to see actual live numbers:
+    print(f"🔗 LIVE QUOTA DASHBOARD: https://aistudio.google.com/app/plan_pricing")
     print("─" * 45)
-    
+    print("💡 If you see a '429' error, check the link above.")

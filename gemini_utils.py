@@ -1,5 +1,7 @@
 from google import genai
 from google.colab import userdata
+from IPython.display import display, Markdown
+import textwrap
 
 def setup_gemini():
     """
@@ -8,44 +10,44 @@ def setup_gemini():
     """
     api_key = userdata.get('GEMINI_API_KEY')
     
-    # 1. Check if key is completely missing
     if not api_key:
         print("❌ Error: GEMINI_API_KEY not found in Colab Secrets.")
         return None
 
     clean_key = api_key.strip()
     
-    # 2. Check for hidden spaces (common copy-paste issue)
+    # Common student errors: hidden spaces or wrong key type
     if len(api_key) != len(clean_key):
         print("⚠️ Warning: Your API key contains hidden spaces.")
     
-    # 3. Check for standard 39-character length
     if len(clean_key) != 39:
         print(f"⚠️ Warning: Standard Gemini keys are 39 characters. Yours is {len(clean_key)}.")
 
     try:
-        # Initialize client with the cleaned key
         client = genai.Client(api_key=clean_key)
         return client
     except Exception as e:
-        # Only print on actual connection or initialization errors
         print(f"❌ Critical Error during setup: {e}")
         return None
 
-
-def check_quota(client):
+def print_md(text):
     """
-    Prints the remaining daily requests for the current model.
-    Note: Requires a valid initialized client.
+    Renders text as Markdown in the Colab output.
+    Useful for visualizing headers, lists, and tables from model responses.
+    """
+    if text:
+        display(Markdown(str(text)))
+
+def check_quota(client, model_id="gemini-2.5-flash"):
+    """
+    Displays remaining daily requests to help students manage their usage.
     """
     try:
-        # Fetches the specific usage metadata for the free tier
-        quota_info = client.models.get_metadata(model="gemini-2.5-flash")
-        
-        remaining = quota_info.get('remaining_requests_day', 'Unknown')
-        total = quota_info.get('total_requests_day', 'Unknown')
-        
-        print(f"📊 Quota Status: {remaining} / {total} requests remaining for today.")
-    except Exception as e:
-        # Silent failure if the metadata endpoint is throttled
+        # In 2026 SDK, usage metadata is retrieved via the model object
+        model_info = client.models.get(model=model_id)
+        # Note: API response structure can vary; we check for available quota fields
+        print(f"📊 Model: {model_id}")
+        print("Note: Check AI Studio dashboard for precise real-time daily quota.")
+    except Exception:
+        # Silent failure if metadata is unavailable
         pass

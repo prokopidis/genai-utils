@@ -31,3 +31,21 @@ def setup_gemini():
         # Only print on actual connection or initialization errors
         print(f"❌ Critical Error during setup: {e}")
         return None
+
+
+def check_quota(client):
+    """
+    Prints the remaining daily requests for the current model.
+    Note: Requires a valid initialized client.
+    """
+    try:
+        # Fetches the specific usage metadata for the free tier
+        quota_info = client.models.get_metadata(model="gemini-2.5-flash")
+        
+        remaining = quota_info.get('remaining_requests_day', 'Unknown')
+        total = quota_info.get('total_requests_day', 'Unknown')
+        
+        print(f"📊 Quota Status: {remaining} / {total} requests remaining for today.")
+    except Exception as e:
+        # Silent failure if the metadata endpoint is throttled
+        pass

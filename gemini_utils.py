@@ -73,6 +73,6 @@ def end_session_report(client, model_id="gemini-2.5-flash"):
     print(f"⏱️ Estimated Minute Limit: {info['RPM']} requests")
     print("─" * 45)
     # The only place to see actual live numbers:
-    print(f"🔗 LIVE QUOTA DASHBOARD: https://aistudio.google.com/app/plan_pricing")
+    print(f"🔗 LIVE QUOTA DASHBOARD: https://aistudio.google.com/app/usage?timeRange=last-28-days")
     print("─" * 45)
     print("💡 If you see a '429' error, check the link above.")

@@ -520,47 +520,28 @@ def deploy_to_argilla(df_predictions, df_labels, dataset_name, workspace_name):
     return dataset
 
 
+def get_argilla_client():
+    """Returns a silent, authenticated Argilla client without UI redirects."""
+    import os
+    import argilla as rg
+    from dotenv import load_dotenv
 
-
-def initialize_argilla():
-    """
-    Authenticates with Argilla by checking Colab Secrets first, 
-    then falling back to a local .env file.
-    
-    Returns:
-        rg.Argilla: The initialized Argilla client.
-    """
-    api_key = None
-    api_url = None
-
-    # 1. Try Google Colab Secrets
+    # Try Colab first, then local .env
     try:
         from google.colab import userdata
         api_key = userdata.get('ARGILLA_API_KEY')
         api_url = userdata.get('ARGILLA_URL')
-        source = "Colab Secrets"
     except (ImportError, ModuleNotFoundError):
-        # 2. Fallback to .env / OS Environment
         load_dotenv()
         api_key = os.getenv("ARGILLA_API_KEY")
         api_url = os.getenv("ARGILLA_URL")
-        source = ".env file / OS Env"
 
-    # 3. Validation
     if not api_key or not api_url:
-        error_msg = (
-            "❌ Failed to find Argilla credentials. "
-            "Ensure ARGILLA_API_KEY and ARGILLA_URL are set in "
-            "either Colab Secrets or a .env file."
-        )
-        logging.error(error_msg)
-        raise EnvironmentError(error_msg)
+        raise ValueError("❌ Credentials missing. Set ARGILLA_API_KEY and ARGILLA_URL.")
 
-    # 4. Initialize Client
-    try:
-        client = rg.Argilla(api_url=api_url, api_key=api_key)
-        logging.info(f"✅ Argilla client initialized via {source}.")
-        return client
-    except Exception as e:
-        logging.error(f"❌ Connection to Argilla failed: {e}")
-        raise
+    # This creates the connection 'headless'
+    client = rg.Argilla(api_url=api_url, api_key=api_key)
+    
+    return client
+
+

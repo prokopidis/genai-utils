@@ -543,5 +543,3 @@ def get_argilla_client():
     client = rg.Argilla(api_url=api_url, api_key=api_key)
     
     return client
-
-

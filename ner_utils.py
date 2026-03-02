@@ -516,7 +516,7 @@ def deploy_to_argilla(client, df_predictions, df_labels, dataset_name, workspace
     # 6. Bulk Upload
     dataset.records.log(records)
     logging.info(f"Successfully uploaded {len(records)} records to {dataset_name}.")
-    
+    return None
 
 def get_argilla_client():
     """Returns a silent, authenticated Argilla client without UI redirects."""

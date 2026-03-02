@@ -128,3 +128,108 @@ def generate_adjudication_ui(ready_data):
     display(nav_controls)
     display(output)
     render_view(0)
+
+
+# --- 2. DATA EXTRACTION & PREPARATION ---
+def get_ready_data(dataset) -> List[Dict[str, Any]]:
+    # Fetch completed records with responses
+    query_completed = rg.Query(filter=rg.Filter(("status", "==", "completed")))
+    completed_records = list(dataset.records(query=query_completed, with_responses=True))
+    
+    # Map UUIDs to Usernames
+    user_id_to_name = {str(u.id): u.username for u in client.users}
+    
+    formatted_list = []
+    for record in completed_records:
+        user_responses = {}
+        for resp in record.responses:
+            if resp.status == "submitted" and resp.value is not None:
+                name = user_id_to_name.get(str(resp.user_id), str(resp.user_id))
+                # Standardize to (start, end, label)
+                user_responses[name] = [(s['start'], s['end'], s['label']) for s in resp.value]
+        
+        formatted_list.append({
+            "id": record.metadata.get("original_id", "unknown"),
+            "domain": record.metadata.get("domain_filter") or record.metadata.get("domain") or "Unknown Domain",
+            "text": record.fields.get("text", ""),
+            "annotations": user_responses 
+        })
+    
+    # Filter for records with 2+ annotators
+    return [item for item in formatted_list if len(item["annotations"]) >= 2]
+
+# --- 3. METRIC FUNCTIONS ---
+def calculate_pair_metrics(iaa_ready: List[Dict]) -> pd.DataFrame:
+    pairs = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0, "matches": 0, "total": 0})
+    for item in iaa_ready:
+        users = sorted(list(item["annotations"].keys()))
+        for u1, u2 in combinations(users, 2):
+            pair_key = (u1, u2)
+            s1, s2 = set(item["annotations"][u1]), set(item["annotations"][u2])
+            pairs[pair_key]["total"] += 1
+            if s1 == s2: pairs[pair_key]["matches"] += 1
+            pairs[pair_key]["tp"] += len(s1 & s2)
+            pairs[pair_key]["fp"] += len(s1 - s2)
+            pairs[pair_key]["fn"] += len(s2 - s1)
+    
+    res = []
+    for (u1, u2), c in pairs.items():
+        f1 = (2*c["tp"])/(2*c["tp"]+c["fp"]+c["fn"]) if (2*c["tp"]+c["fp"]+c["fn"]) > 0 else 0
+        res.append({
+            "Annotator Pair": f"{u1} ↔ {u2}",
+            "Sentences": c["total"],
+            "Perfect Match %": f"{(c['matches']/c['total']):.1%}",
+            "Span F1": round(f1, 4)
+        })
+    return pd.DataFrame(res)
+
+def calculate_label_metrics(iaa_ready: List[Dict], target_pair: List[str]) -> pd.DataFrame:
+    stats = defaultdict(lambda: {"tp": 0, "fp": 0, "fn": 0})
+    u1, u2 = target_pair[0], target_pair[1]
+    
+    for item in iaa_ready:
+        annos = item["annotations"]
+        if u1 in annos and u2 in annos:
+            s1, s2 = set(annos[u1]), set(annos[u2])
+            all_labels = {s[2] for s in s1} | {s[2] for s in s2}
+            for label in all_labels:
+                l1, l2 = {s for s in s1 if s[2] == label}, {s for s in s2 if s[2] == label}
+                stats[label]["tp"] += len(l1 & l2)
+                stats[label]["fp"] += len(l1 - l2)
+                stats[label]["fn"] += len(l2 - l1)
+    
+    res = []
+    for label, c in stats.items():
+        f1 = (2*c["tp"])/(2*c["tp"]+c["fp"]+c["fn"]) if (2*c["tp"]+c["fp"]+c["fn"]) > 0 else 0
+        res.append({"Label": label, "Both Agreed": c["tp"], f"Only {u1}": c["fp"], f"Only {u2}": c["fn"], "F1-Score": round(f1, 4)})
+    return pd.DataFrame(res).sort_values("F1-Score", ascending=False)
+
+# --- 4. VISUALIZATION FUNCTIONS ---
+def plot_domain_confusion_matrix(ready_data: List[Dict], u1: str, u2: str):
+    y_true, y_pred = [], []
+    domain_name = "Unknown Domain"
+    
+    for item in ready_data:
+        annos = item.get("annotations", {})
+        if u1 in annos and u2 in annos:
+            if domain_name == "Unknown Domain":
+                domain_name = item.get("domain", "Unknown Domain")
+            off1 = {(s, e): l for s, e, l in annos[u1]}
+            off2 = {(s, e): l for s, e, l in annos[u2]}
+            common = set(off1.keys()) & set(off2.keys())
+            for o in common:
+                y_true.append(off1[o])
+                y_pred.append(off2[o])
+                
+    if not y_true: return
+
+    labels = sorted(list(set(y_true) | set(y_pred)))
+    df_cm = pd.DataFrame(confusion_matrix(y_true, y_pred, labels=labels), index=labels, columns=labels)
+    
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(df_cm, annot=True, fmt='d', cmap='Blues', cbar=False, linewidths=.5, annot_kws={"size": 9})
+    plt.title(f"Domain: {domain_name}\n({u1} vs {u2})", fontsize=10)
+    plt.xticks(rotation=45, ha='right', fontsize=8); plt.yticks(fontsize=8)
+    plt.tight_layout()
+    plt.show()
+

@@ -310,3 +310,45 @@ def display_styled_df(df: pd.DataFrame, target_col: str = 'text', n_samples: int
     )
 
     display(styled)
+
+
+def prepare_gliner_dataset(df_texts: pd.DataFrame, df_labels: pd.DataFrame) -> List[Dict[str, Any]]:
+    """
+    Combines text data with domain-specific labels and definitions.
+    Returns a list of structured records ready for GLiNER2 inference.
+    """
+    # 1. Pre-compute mappings for performance
+    # domain -> [list of labels]
+    domain_labels = df_labels.groupby('domain')['label'].apply(list).to_dict()
+    
+    # label -> definition string
+    label_definitions = df_labels.set_index('label')['definition'].to_dict()
+
+    logging.info(f"🔍 Mapping {len(domain_labels)} domains with {len(label_definitions)} unique entity definitions.")
+
+    dataset_raw = []
+
+    # 2. Iterate and structure
+    for _, row in df_texts.iterrows():
+        domain = row.get('domain')
+        
+        # Only process if we have defined labels for this domain
+        if domain in domain_labels:
+            labels_for_domain = domain_labels[domain]
+            
+            record = {
+                "id": int(row['id']),
+                "domain": domain,
+                "text": row['text'],
+                "starter_labels": labels_for_domain,
+                "definitions": {
+                    lbl: label_definitions.get(lbl, "No definition provided") 
+                    for lbl in labels_for_domain
+                }
+            }
+            dataset_raw.append(record)
+        else:
+            logging.warning(f"⚠️ Skipping ID {row.get('id')}: Domain '{domain}' not found in labels sheet.")
+
+    logging.info(f"🚀 Prepared {len(dataset_raw)} records for GLiNER2 inference.")
+    return dataset_raw

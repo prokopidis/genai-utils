@@ -389,16 +389,6 @@ def process_ner_pipeline(dataset: List[Dict], extractor, n_preview: int = 10):
 
     logging.info(f"✅ Pipeline complete. Generated {len(df_results)} processed rows.")
 
-    # 6. Styled Preview
-    if not df_results.empty:
-        display(HTML("<h3>Pipeline Results Preview</h3>"))
-        preview = df_results[['id', 'domain', 'summary']].head(n_preview).style.set_properties(**{
-            'text-align': 'left',
-            'white-space': 'normal',
-            'font-family': 'serif'
-        })
-        display(preview)
-
     return df_results
 
 # Usage:

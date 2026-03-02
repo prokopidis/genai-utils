@@ -233,3 +233,37 @@ def plot_domain_confusion_matrix(ready_data: List[Dict], u1: str, u2: str):
     plt.tight_layout()
     plt.show()
 
+
+def load_gsheet_data(texts_url: str, labels_url: str, merge: bool = True):
+    """
+    Downloads Google Sheets as CSVs and returns them as DataFrames.
+    
+    Args:
+        texts_url: The sharing URL for the texts sheet.
+        labels_url: The sharing URL for the labels sheet.
+        merge: If True, returns a single DataFrame joined on 'domain'.
+    """
+    def get_csv_url(url: str):
+        try:
+            file_id = url.split("/")[-2]
+            return f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=csv"
+        except IndexError:
+            raise ValueError(f"Invalid Google Sheets URL: {url}")
+
+    try:
+        # Load datasets
+        df_texts = pd.read_csv(get_csv_url(texts_url))
+        df_labels = pd.read_csv(get_csv_url(labels_url))
+        
+        logging.info("✅ DataFrames loaded successfully.")
+        
+        if merge:
+            # Joining on 'domain' as per your column structure
+            df_combined = pd.merge(df_texts, df_labels, on="domain", how="left")
+            return df_combined
+        
+        return df_texts, df_labels
+
+    except Exception as e:
+        logging.error(f"❌ Loading failed: {e}")
+        return None

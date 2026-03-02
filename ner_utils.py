@@ -434,3 +434,85 @@ def prepare_gliner_dataset(df_texts: pd.DataFrame, df_labels: pd.DataFrame) -> L
 
     logging.info(f"Prepared {len(dataset_raw)} records for GLiNER2 inference.")
     return dataset_raw
+
+
+def deploy_to_argilla(df_predictions, df_labels, dataset_name, workspace_name):
+    """
+    Deploys NER predictions to Argilla. 
+    Assumes 'client' is already defined globally.
+    """
+    # 1. Fresh Start logic: Clean up previous versions
+    existing_ds = client.datasets(name=dataset_name, workspace=workspace_name)
+    if existing_ds:
+        logging.info(f"Deleting existing dataset '{dataset_name}'...")
+        existing_ds.delete()
+
+    # 2. Taxonomy Prefixing: Group labels by academic domain
+    unique_labels = sorted(list(set([
+        f"[{row['domain'][:5].upper()}] {row['label']}" 
+        for _, row in df_labels.iterrows()
+    ])))
+
+    # 3. Define Dataset Settings
+    settings = rg.Settings(
+        fields=[
+            rg.TextField(name="domain_display", title="Academic Domain"),
+            rg.TextField(name="text", title="Greek Source Text")
+        ],
+        questions=[
+            rg.SpanQuestion(
+                name="ner_tags",
+                field="text",
+                labels=unique_labels, # Use the list generated above
+                allow_overlapping=True,
+                title="Entity Correction"
+            )
+        ],
+        metadata=[
+            rg.IntegerMetadataProperty(name="original_id", title="Original ID")
+        ],
+        distribution=rg.TaskDistribution(min_submitted=2)
+    )
+
+    # 4. Create Dataset on the Server
+    dataset = rg.Dataset(
+        name=dataset_name, 
+        workspace=workspace_name, 
+        settings=settings, 
+        client=client
+    )
+    dataset.create()
+
+    # 5. Build Records with formatted suggestions
+    records = []
+    for _, row in df_predictions.iterrows():
+        domain_prefix = row['domain'][:5].upper()
+        
+        # Format the model's predictions to match the prefixed labels in the UI
+        formatted_suggestions = [
+            {
+                "start": p['start'], 
+                "end": p['end'], 
+                "label": f"[{domain_prefix}] {p['label']}"
+            } 
+            for p in row['predictions']
+        ]
+        
+        record = rg.Record(
+            fields={
+                "domain_display": row['domain'], 
+                "text": row['text']
+            },
+            suggestions=[
+                rg.Suggestion(question_name="ner_tags", value=formatted_suggestions)
+            ],
+            metadata={
+                "original_id": int(row['id'])
+            }
+        )
+        records.append(record)
+
+    # 6. Bulk Upload
+    dataset.records.log(records)
+    logging.info(f"Successfully uploaded {len(records)} records to {dataset_name}.")
+    return dataset

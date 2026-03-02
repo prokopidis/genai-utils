@@ -234,7 +234,7 @@ def plot_domain_confusion_matrix(ready_data: List[Dict], u1: str, u2: str):
     plt.show()
 
 
-def load_gsheet_data(texts_url: str, labels_url: str, merge: bool = True):
+def load_gsheet_data(texts_url: str, labels_url: str, merge: bool = False):
     """
     Downloads Google Sheets as CSVs and returns them as DataFrames.
     

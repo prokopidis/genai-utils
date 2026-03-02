@@ -530,14 +530,14 @@ def get_argilla_client():
     try:
         from google.colab import userdata
         api_key = userdata.get('ARGILLA_API_KEY')
-        api_url = userdata.get('ARGILLA_URL')
+        api_url = userdata.get('ARGILLA_API_URL')
     except (ImportError, ModuleNotFoundError):
         load_dotenv()
         api_key = os.getenv("ARGILLA_API_KEY")
-        api_url = os.getenv("ARGILLA_URL")
+        api_url = os.getenv("ARGILLA_API_URL")
 
     if not api_key or not api_url:
-        raise ValueError("❌ Credentials missing. Set ARGILLA_API_KEY and ARGILLA_URL.")
+        raise ValueError("❌ Credentials missing. Set ARGILLA_API_KEY and ARGILLA_API_URL.")
 
     # This creates the connection 'headless'
     client = rg.Argilla(api_url=api_url, api_key=api_key)

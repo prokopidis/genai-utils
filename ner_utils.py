@@ -267,3 +267,46 @@ def load_gsheet_data(texts_url: str, labels_url: str, merge: bool = False):
     except Exception as e:
         logging.error(f"❌ Loading failed: {e}")
         return None
+
+
+def display_styled_df(df: pd.DataFrame, target_col: str = 'text', n_samples: int = 10):
+    """
+    Applies custom CSS and Pandas styling to display a readable, wrapped DataFrame.
+    Optimized for long-form text (like Greek) alongside metadata.
+    """
+    # 1. Inject CSS for Jupyter/Colab output wrapping
+    display(HTML("<style>.output_subarea { white-space: normal !important; }</style>"))
+
+    # 2. Reset Pandas truncation
+    pd.set_option('display.max_colwidth', None)
+
+    # 3. Handle sampling logic
+    sample_size = min(n_samples, len(df))
+    df_sample = df.sample(n=sample_size)
+
+    # 4. Define and apply styles
+    other_cols = df_sample.columns.difference([target_col])
+    
+    styled = (df_sample.style
+        .set_properties(
+            subset=[target_col], 
+            **{
+                'text-align': 'left',
+                'white-space': 'normal',
+                'min-width': '500px',
+                'font-family': 'serif',
+                'background-color': '#f9f9f9' # Subtle highlight for the text
+            }
+        )
+        .set_properties(
+            subset=other_cols,
+            **{
+                'text-align': 'center',
+                'white-space': 'nowrap',
+                'min-width': '100px',
+                'vertical-align': 'middle'
+            }
+        )
+    )
+
+    display(styled)

@@ -257,7 +257,7 @@ def load_gsheet_data(texts_url: str, labels_url: str, merge: bool = False):
         df_texts = pd.read_csv(get_csv_url(texts_url))
         df_labels = pd.read_csv(get_csv_url(labels_url))
         
-        logging.info("✅ DataFrames loaded successfully.")
+        logging.info("DataFrames loaded successfully.")
         
         if merge:
             # Joining on 'domain' as per your column structure
@@ -267,7 +267,7 @@ def load_gsheet_data(texts_url: str, labels_url: str, merge: bool = False):
         return df_texts, df_labels
 
     except Exception as e:
-        logging.error(f"❌ Loading failed: {e}")
+        logging.error(f"Loading failed: {e}")
         return None
 
 
@@ -321,7 +321,7 @@ def process_ner_pipeline(dataset: List[Dict], extractor, n_preview: int = 10):
     """
     processed_records = []
     
-    logging.info(f"🚀 Running pipeline for {len(dataset)} records...")
+    logging.info(f"Running pipeline for {len(dataset)} records...")
 
     for record in tqdm(dataset, desc="Processing Entities"):
         try:
@@ -366,7 +366,7 @@ def process_ner_pipeline(dataset: List[Dict], extractor, n_preview: int = 10):
             })
 
         except Exception as e:
-            logging.error(f"❌ Error on ID {record.get('id')}: {e}")
+            logging.error(f"Error on ID {record.get('id')}: {e}")
             continue
 
     # 5. DataFrame Construction & Enrichment
@@ -387,7 +387,7 @@ def process_ner_pipeline(dataset: List[Dict], extractor, n_preview: int = 10):
     df_results['offsets'] = df_results['predictions'].apply(get_offsets)
     df_results['summary'] = df_results['predictions'].apply(get_summary)
 
-    logging.info(f"✅ Pipeline complete. Generated {len(df_results)} processed rows.")
+    logging.info(f"Pipeline complete. Generated {len(df_results)} processed rows.")
 
     return df_results
 
@@ -406,7 +406,7 @@ def prepare_gliner_dataset(df_texts: pd.DataFrame, df_labels: pd.DataFrame) -> L
     # label -> definition string
     label_definitions = df_labels.set_index('label')['definition'].to_dict()
 
-    logging.info(f"🔍 Mapping {len(domain_labels)} domains with {len(label_definitions)} unique entity definitions.")
+    logging.info(f"Mapping {len(domain_labels)} domains with {len(label_definitions)} unique entity definitions.")
 
     dataset_raw = []
 
@@ -430,7 +430,7 @@ def prepare_gliner_dataset(df_texts: pd.DataFrame, df_labels: pd.DataFrame) -> L
             }
             dataset_raw.append(record)
         else:
-            logging.warning(f"⚠️ Skipping ID {row.get('id')}: Domain '{domain}' not found in labels sheet.")
+            logging.warning(f"Skipping ID {row.get('id')}: Domain '{domain}' not found in labels sheet.")
 
-    logging.info(f"🚀 Prepared {len(dataset_raw)} records for GLiNER2 inference.")
+    logging.info(f"Prepared {len(dataset_raw)} records for GLiNER2 inference.")
     return dataset_raw

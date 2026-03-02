@@ -16,6 +16,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
+from tqdm.auto import tqdm
+
 # UI & Notebook Display
 import ipywidgets as widgets
 from IPython.display import display, HTML, Markdown, clear_output
@@ -311,6 +313,96 @@ def display_styled_df(df: pd.DataFrame, target_col: str = 'text', n_samples: int
 
     display(styled)
 
+
+def process_ner_pipeline(dataset: List[Dict], extractor, n_preview: int = 10):
+    """
+    Executes the full NER pipeline: Inference -> Cleaning -> Offset Generation -> Summary.
+    Returns a processed Pandas DataFrame.
+    """
+    processed_records = []
+    
+    logging.info(f"🚀 Running pipeline for {len(dataset)} records...")
+
+    for record in tqdm(dataset, desc="Processing Entities"):
+        try:
+            # 1. Dynamic Schema Construction
+            schema = {
+                label: [f"val::str::{record['definitions'][label]}"] 
+                for label in record['starter_labels']
+            }
+
+            # 2. GLiNER2 Inference
+            extracted = extractor.extract_json(
+                record['text'], 
+                schema,
+                include_spans=True,
+                include_confidence=True
+            )
+            
+            clean_predictions = []
+            
+            # 3. Parse and Flatten nested GLiNER2 output
+            for label, occurrences in extracted.items():
+                if not occurrences: continue
+                
+                for entity in occurrences:
+                    data = entity.get('val', {})
+                    if isinstance(data, dict):
+                        clean_predictions.append({
+                            "start": data.get('start'),
+                            "end": data.get('end'),
+                            "label": label,
+                            "text": data.get('text'),
+                            "confidence": entity.get('confidence')
+                        })
+
+            # 4. Store intermediate result
+            processed_records.append({
+                "id": record['id'],
+                "domain": record['domain'],
+                "text": record['text'],
+                "predictions": clean_predictions,
+                "entity_count": len(clean_predictions)
+            })
+
+        except Exception as e:
+            logging.error(f"❌ Error on ID {record.get('id')}: {e}")
+            continue
+
+    # 5. DataFrame Construction & Enrichment
+    df_results = pd.DataFrame(processed_records)
+
+    # 5.1 Helper: Extract flat offsets for Argilla/Evaluation
+    def get_offsets(preds):
+        return [(p['start'], p['end'], p['label']) 
+                for p in preds if isinstance(p.get('start'), int)]
+
+    # 5.2 Helper: Scientific Summary String
+    def get_summary(preds):
+        return ", ".join([
+            f"{p['text']} [{p['start']}:{p['end']}] ({p['label']})" 
+            for p in preds if p.get('text')
+        ])
+
+    df_results['offsets'] = df_results['predictions'].apply(get_offsets)
+    df_results['summary'] = df_results['predictions'].apply(get_summary)
+
+    logging.info(f"✅ Pipeline complete. Generated {len(df_results)} processed rows.")
+
+    # 6. Styled Preview
+    if not df_results.empty:
+        display(HTML("<h3>Pipeline Results Preview</h3>"))
+        preview = df_results[['id', 'domain', 'summary']].head(n_preview).style.set_properties(**{
+            'text-align': 'left',
+            'white-space': 'normal',
+            'font-family': 'serif'
+        })
+        display(preview)
+
+    return df_results
+
+# Usage:
+# df_predictions = process_ner_pipeline(dataset_raw, extractor)
 
 def prepare_gliner_dataset(df_texts: pd.DataFrame, df_labels: pd.DataFrame) -> List[Dict[str, Any]]:
     """

@@ -133,7 +133,7 @@ def generate_adjudication_ui(ready_data):
 
 
 # --- 2. DATA EXTRACTION & PREPARATION ---
-def get_ready_data(dataset) -> List[Dict[str, Any]]:
+def get_ready_data(client, dataset) -> List[Dict[str, Any]]:
     # Fetch completed records with responses
     query_completed = rg.Query(filter=rg.Filter(("status", "==", "completed")))
     completed_records = list(dataset.records(query=query_completed, with_responses=True))

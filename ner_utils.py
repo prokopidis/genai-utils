@@ -437,8 +437,7 @@ def prepare_gliner_dataset(df_texts: pd.DataFrame, df_labels: pd.DataFrame) -> L
     logging.info(f"Prepared {len(dataset_raw)} records for GLiNER2 inference.")
     return dataset_raw
 
-
-def deploy_to_argilla(df_predictions, df_labels, dataset_name, workspace_name):
+def deploy_to_argilla(client, df_predictions, df_labels, dataset_name, workspace_name):
     """
     Deploys NER predictions to Argilla. 
     Assumes 'client' is already defined globally.
@@ -518,7 +517,6 @@ def deploy_to_argilla(df_predictions, df_labels, dataset_name, workspace_name):
     dataset.records.log(records)
     logging.info(f"Successfully uploaded {len(records)} records to {dataset_name}.")
     return dataset
-
 
 def get_argilla_client():
     """Returns a silent, authenticated Argilla client without UI redirects."""

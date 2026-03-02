@@ -470,6 +470,7 @@ def deploy_to_argilla(client, df_predictions, df_labels, dataset_name, workspace
             )
         ],
         metadata=[
+            rg.TermMetadataProperty(name="domain", title="Domain"),
             rg.IntegerMetadataProperty(name="original_id", title="Original ID")
         ],
         distribution=rg.TaskDistribution(min_submitted=2)
@@ -508,6 +509,7 @@ def deploy_to_argilla(client, df_predictions, df_labels, dataset_name, workspace
                 rg.Suggestion(question_name="ner_tags", value=formatted_suggestions)
             ],
             metadata={
+                "domain": row['domain'], 
                 "original_id": int(row['id'])
             }
         )
